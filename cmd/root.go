@@ -1,8 +1,7 @@
 package cmd
 
 import (
-	"errors"
-	"net/netip"
+	"fmt"
 
 	"github.com/spf13/cobra"
 
@@ -11,26 +10,19 @@ import (
 
 var source string
 var destinations []string
-var showTest bool
+var v bool
+var vv bool
+var version bool
 
 var rootCmd = &cobra.Command{
 	Use:   "udp_forward",
 	Short: "udp_forward can send udp data from one source to mutli destinations",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		sourceAddr, err := netip.ParseAddrPort(source)
-		if err != nil {
-			return errors.New("source address format should be like a.b.c.d:p")
+		if version {
+			fmt.Println("udp_forward version: v0.0.1")
+			return nil
 		}
-		destinationAddrs := []netip.AddrPort{}
-		for _, destination := range destinations {
-			destinationAddr, err := netip.ParseAddrPort(destination)
-			if err != nil {
-				return errors.New("destination address format should be like a.b.c.d:p")
-			}
-			destinationAddrs = append(destinationAddrs, destinationAddr)
-		}
-
-		return forward.Run(sourceAddr, destinationAddrs, showTest)
+		return forward.Run(source, destinations, v, vv)
 	},
 }
 
@@ -39,9 +31,12 @@ func Execute() error {
 }
 
 func init() {
-	rootCmd.Flags().StringVarP(&source, "listen", "l", "", "listen address & port for udp source, e.g., 0.0.0.0:514")
-	rootCmd.Flags().StringArrayVarP(&destinations, "destinations", "d", []string{""}, "destinations for udp data, e.g., 192.168.1.2:9000")
-	rootCmd.Flags().BoolVarP(&showTest, "test", "t", false, "print data to std.out for testing")
+	rootCmd.Flags().StringVarP(&source, "listen", "l", "", "listen for udp data, e.g., udp:0.0.0.0:514 or unix:/path/to/unix.sock")
+	rootCmd.Flags().StringArrayVarP(&destinations, "destinations", "d", []string{""}, "destinations for udp data, e.g., udp:192.168.1.2:9000 or unix:/path/to/unix.sock")
+	rootCmd.Flags().BoolVarP(&v, "verbose", "v", false, "print info log")
+	rootCmd.Flags().BoolVar(&vv, "vv", false, "more verbose, print debug log")
+	rootCmd.Flags().BoolVar(&version, "version", false, "show version")
+
 	rootCmd.MarkFlagRequired("listen")
 	rootCmd.MarkFlagRequired("destinations")
 }

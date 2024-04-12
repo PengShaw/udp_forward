@@ -1,15 +1,13 @@
 package main
 
 import (
-	"fmt"
-	"os"
+	"log"
 
 	"github.com/PengShaw/udp_forward/cmd"
 )
 
 func main() {
 	if err := cmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		log.Fatalln(err)
 	}
 }
