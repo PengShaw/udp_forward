@@ -2,154 +2,71 @@ package forward
 
 import (
 	"errors"
-	"fmt"
-	"io"
 	"net"
 	"strings"
+
+	"github.com/PengShaw/GoUtilsKit/logger"
+	"github.com/PengShaw/GoUtilsKit/socket"
 )
 
-var appLog = NewLog()
-
-type Addr struct {
-	protocol string
-	addr     string
-}
-
-func NewAddr(s string) (*Addr, error) {
-	sp := strings.SplitN(s, ":", 2)
+func checkAddrInput(i string) (string, string, error) {
+	sp := strings.SplitN(i, ":", 2)
 	if len(sp) != 2 {
-		return nil, errors.New("string format should be like: udp:0.0.0.0:514 or unix:/path/to/unix.sock")
-	}
-	addr := Addr{
-		protocol: sp[0],
-		addr:     sp[1],
+		return "", "", errors.New("string format should be like: udp:0.0.0.0:514 or tcp:0.0.0.0:514 or unix:/path/to/unix.sock")
 	}
 
 	var err error
-	switch addr.protocol {
+	switch sp[0] {
 	case "udp":
-		_, err = net.ResolveUDPAddr("udp", addr.addr)
+		_, err = net.ResolveUDPAddr("udp", sp[1])
+	case "tcp":
+		_, err = net.ResolveTCPAddr("tcp", sp[1])
 	case "unix":
-		_, err = net.ResolveUnixAddr("unix", addr.addr)
+		_, err = net.ResolveUnixAddr("unix", sp[1])
 	default:
-		err = errors.New("supported protocol should be: udp or unix")
-	}
-	if err != nil {
-		return nil, err
+		err = errors.New("supported protocol should be: udp or tcp or unix")
 	}
 
-	return &addr, nil
+	return sp[0], sp[1], err
 }
 
-func (a *Addr) Listen(ch chan<- []byte) {
-	switch a.protocol {
+func listen(network, address string, ch chan<- []byte) {
+	switch network {
 	case "udp":
-		a.udpListen(ch)
+		socket.RunUDPServer(address, ch)
+	case "tcp":
+		socket.RunTCPServer(address, ch)
 	case "unix":
-		a.unixListen(ch)
+		socket.RunUnixServer(address, ch)
 	}
 }
 
-func (a *Addr) udpListen(ch chan<- []byte) {
-	conn, err := net.ListenPacket(a.protocol, a.addr)
-	if err != nil {
-		appLog.Errorf("listen for %s:%s failed: %s", a.protocol, a.addr, err)
-		return
-	}
-	defer conn.Close()
-	appLog.Infof("listen: <%s>", conn.LocalAddr().String())
-
-	buf := make([]byte, 1024)
-	for {
-		_, addr, err := conn.ReadFrom(buf)
-		if err != nil {
-			appLog.Errorf("listen data for %s:%s failed: %s", a.protocol, a.addr, err)
-			continue
-		}
-		appLog.Infof("received data from %s", addr.String())
-		appLog.Debugf("received data(%s) from %s", buf, addr.String())
-		ch <- buf
-	}
-}
-
-func (a *Addr) unixListen(ch chan<- []byte) {
-	l, err := net.Listen(a.protocol, a.addr)
-	if err != nil {
-		appLog.Errorf("listen for %s:%s failed: %s", a.protocol, a.addr, err)
-		return
-	}
-	defer l.Close()
-
-	for {
-		conn, err := l.Accept()
-		appLog.Infof("listen: <%s>", l.Addr().String())
-		if err != nil {
-			appLog.Errorf("connection for %s:%s failed: %s \n", a.protocol, a.addr, err)
-			continue
-		}
-
-		go func(c net.Conn, ch chan<- []byte) {
-			defer c.Close()
-			for {
-				buf := make([]byte, 1024)
-				_, err := c.Read(buf)
-				if err != nil && err != io.EOF {
-					appLog.Errorf("listen data for %s:%s failed: %s", a.protocol, a.addr, err)
-					break
-				}
-				if err == io.EOF {
-					break
-				}
-				ch <- buf
-				appLog.Infof("received data from %s", c.LocalAddr().String())
-				appLog.Debugf("received data(%s) from %s", buf, c.LocalAddr().String())
-			}
-		}(conn, ch)
-	}
-}
-
-func (a *Addr) Send(ch <-chan []byte) {
-	conn, err := net.Dial(a.protocol, a.addr)
-	if err != nil {
-		appLog.Errorf("build connection to %s:%s failed: %s", a.protocol, a.addr, err)
-		return
-	}
-	defer conn.Close()
-
-	for {
-		data := <-ch
-		_, err := conn.Write(data)
-		if err != nil {
-			appLog.Errorf("send data to %s:%s failed: %s", a.protocol, a.addr, err)
-			appLog.Debugf("send data(%s) to %s:%s failed: %s", data, a.protocol, a.addr, err)
-		}
-	}
-}
-
-func Run(s string, ds []string, v bool, vv bool) error {
-	appLog.SetLevel(Error)
+func Run(s string, ds []string, v bool, vv bool) {
+	logger.SetLevel(logger.LevelError)
 	if v {
-		appLog.SetLevel(Info)
+		logger.SetLevel(logger.LevelInfo)
 	}
 	if vv {
-		appLog.SetLevel(Debug)
+		logger.SetLevel(logger.LevelDebug)
 	}
 
-	source, err := NewAddr(s)
+	network, addr, err := checkAddrInput(s)
 	chSource := make(chan []byte)
 	if err != nil {
-		return fmt.Errorf("listen %s", err)
+		logger.Errorf("Check listen input failed: %s", err)
+		return
 	}
-	go source.Listen(chSource)
+	go listen(network, addr, chSource)
 
 	chDestinations := []chan []byte{}
 	for _, d := range ds {
-		destination, err := NewAddr(d)
+		network, addr, err := checkAddrInput(d)
 		chDestination := make(chan []byte)
 		if err != nil {
-			return fmt.Errorf("destination %s", err)
+			logger.Errorf("Check destination input failed: %s", err)
+			return
 		}
-		go destination.Send(chDestination)
+		go socket.RunSocketClient(network, addr, chDestination)
 		chDestinations = append(chDestinations, chDestination)
 	}
 
