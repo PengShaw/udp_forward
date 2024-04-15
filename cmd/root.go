@@ -12,12 +12,13 @@ var source string
 var destinations []string
 var v bool
 var vv bool
+var mtu int
 
 var rootCmd = &cobra.Command{
 	Use:   "udp_forward",
 	Short: "udp_forward received data from one source socket (udp/tcp/unix), and send to multi destination sockets (udp/tcp/unix)",
 	Run: func(cmd *cobra.Command, args []string) {
-		forward.Run(source, destinations, v, vv)
+		forward.Run(source, destinations, v, vv, mtu)
 	},
 }
 
@@ -38,6 +39,7 @@ func init() {
 	rootCmd.Flags().StringArrayVarP(&destinations, "destinations", "d", []string{""}, "destinations, e.g., udp:192.168.1.2:9000 or tcp:0.0.0.0:514 or unix:/path/to/unix.sock")
 	rootCmd.Flags().BoolVarP(&v, "verbose", "v", false, "print info log")
 	rootCmd.Flags().BoolVar(&vv, "vv", false, "more verbose, print debug log")
+	rootCmd.Flags().IntVar(&mtu, "mtu", 1500, "set data length of each packet")
 
 	rootCmd.MarkFlagRequired("listen")
 	rootCmd.MarkFlagRequired("destinations")

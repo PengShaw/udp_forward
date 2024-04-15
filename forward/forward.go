@@ -30,18 +30,18 @@ func checkAddrInput(i string) (string, string, error) {
 	return sp[0], sp[1], err
 }
 
-func listen(network, address string, ch chan<- []byte) {
+func listen(network, address string, mtu int, ch chan<- []byte) {
 	switch network {
 	case "udp":
-		socket.RunUDPServer(address, ch)
+		socket.RunUDPServer(address, mtu, ch)
 	case "tcp":
-		socket.RunTCPServer(address, ch)
+		socket.RunTCPServer(address, mtu, ch)
 	case "unix":
-		socket.RunUnixServer(address, ch)
+		socket.RunUnixServer(address, mtu, ch)
 	}
 }
 
-func Run(s string, ds []string, v bool, vv bool) {
+func Run(s string, ds []string, v bool, vv bool, mtu int) {
 	logger.SetLevel(logger.LevelError)
 	if v {
 		logger.SetLevel(logger.LevelInfo)
@@ -56,7 +56,7 @@ func Run(s string, ds []string, v bool, vv bool) {
 		logger.Errorf("Check listen input failed: %s", err)
 		return
 	}
-	go listen(network, addr, chSource)
+	go listen(network, addr, mtu, chSource)
 
 	chDestinations := []chan []byte{}
 	for _, d := range ds {

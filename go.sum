@@ -2,6 +2,8 @@ github.com/PengShaw/GoUtilsKit v0.0.1 h1:IDMfk8DOHkcC/j28aLTQF4j37XE7+vJ40P9tImT
 github.com/PengShaw/GoUtilsKit v0.0.1/go.mod h1:LzlJyQqHrEhIHn2KTf9hwUtRhS4xK+4cRQMZlvY3QYg=
 github.com/PengShaw/GoUtilsKit v0.0.2 h1:P5Ze7wVcZv4Uy1KwswGQqT3CE1llhBXX2DAat5HHwXA=
 github.com/PengShaw/GoUtilsKit v0.0.2/go.mod h1:LzlJyQqHrEhIHn2KTf9hwUtRhS4xK+4cRQMZlvY3QYg=
+github.com/PengShaw/GoUtilsKit v0.0.3 h1:G15/hMDUvFHj8w7DeJnWOlNkWumx34OCg2Eiht2OEnM=
+github.com/PengShaw/GoUtilsKit v0.0.3/go.mod h1:LzlJyQqHrEhIHn2KTf9hwUtRhS4xK+4cRQMZlvY3QYg=
 github.com/cpuguy83/go-md2man/v2 v2.0.3/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
